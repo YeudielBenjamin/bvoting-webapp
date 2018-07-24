@@ -23,12 +23,23 @@ export class ImportWallet extends Component{
         });
     }
 
+    saveWallet(account){
+        Wallet.add(account);
+        if (localStorage){
+            let savedWallets = localStorage.getItem("savedWallets");
+            if (!savedWallets){
+                savedWallets = 0;
+            }
+        }
+
+    }
+
     importWallet(event){
         let privateKey = this.state.privateKey; 
         if(/^(0x)?[\da-f]{64}$/i.test(privateKey)){
-            if (privateKey.length === 64) privateKey = "0x"+privateKey;
+            if (privateKey.length === 64) privateKey = "0x" + privateKey;
             let account = Accounts.privateKeyToAccount(privateKey);
-            Wallet.add(account);
+            this.saveWallet(account);
             BVotingContract.methods.admins(account.address).call((err, isAdmin) => {
                 if (err){
                     this.setState({
@@ -40,7 +51,10 @@ export class ImportWallet extends Component{
                     if (isAdmin){
                         this.props.user.isAdmin = true;
                         this.props.onUserChange({
-                            isAdmin: true
+                            isAdmin: true,
+                            permission: 0,
+                            wallet: Wallet.length - 1,
+                            address: account.address
                         });
                     } else {
                         BVotingContract.methods.users(account.address).call((err, user) => {
@@ -54,7 +68,9 @@ export class ImportWallet extends Component{
                                 console.log(user);
                                 this.props.onUserChange({
                                     isAdmin: false,
-                                    permission: user.permission
+                                    permission: user.permission,
+                                    wallet: Wallet.length - 1,
+                                    address: account.address
                                 });
                             }
                         });
@@ -94,11 +110,12 @@ export class ImportWallet extends Component{
                     autoComplete="off"
                     value={this.state.password}
                     onChange={this.handleInput}/>
-                <Form.Button 
+                <Form.Button
                     primary
                     fluid
                     type="submit"
-                    content="IMPORT"/>
+                    content="IMPORT"
+                    disabled={this.state.password === ""}/>
                 <Message 
                     error
                     header='Error'

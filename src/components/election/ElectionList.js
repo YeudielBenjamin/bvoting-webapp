@@ -12,7 +12,8 @@ export class ElectionList extends Component{
                   title={e.title}
                   candidates={e.candidates}
                   contractAddress={e.address}
-                  key={e.address}/>)
+                  key={e.address}
+                  onSelectedElection={this.props.onSelectedElection}/>)
               })
         )
     }

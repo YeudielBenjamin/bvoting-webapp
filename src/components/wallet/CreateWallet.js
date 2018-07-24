@@ -1,6 +1,6 @@
 import React, { Component } from "react";
 import { Form } from "semantic-ui-react";
-import Web3 from "../../utils/web3";
+import Web3, { Wallet } from "../../utils/web3";
 
 export class CreateWallet extends Component{
 
@@ -18,10 +18,9 @@ export class CreateWallet extends Component{
 
     createWallet(){
         Promise.resolve().then(()=> {
-            let address = Web3.eth.accounts.create(Web3.utils.randomHex(32)).encrypt(this.state.password);
-            if (localStorage){
-                localStorage.setItem("wallet", JSON.stringify(address));
-            }
+            let address = Web3.eth.accounts.create(Web3.utils.randomHex(32));
+            Wallet.add(address);
+            
         });
     }
 

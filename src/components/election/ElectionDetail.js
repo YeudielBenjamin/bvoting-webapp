@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import { Icon, Item, Modal, Button } from 'semantic-ui-react';
+import { Card } from 'semantic-ui-react';
 import BVotingContract from "../../utils/BVotingContract";
 import { Wallet } from "../../utils/web3";
 
@@ -9,6 +9,7 @@ export class ElectionDetail extends Component{
         super(props);
 
         this.voteFor = this.voteFor.bind(this);
+        this.selectedElection = this.selectedElection.bind(this);
     }
 
     voteFor(address){
@@ -22,38 +23,17 @@ export class ElectionDetail extends Component{
         })
     }
 
-    render(){
-        if (this.props.hidden) return null;
-        return (
-            <Item>
-                <Item.Image size='small' src='https://react.semantic-ui.com/assets/images/wireframe/image.png' />
+    selectedElection(){
+        console.log(":v");
+        this.props.onSelectedElection({"address": this.props.contractAddress})
+    }
 
-                <Item.Content>
-                    <Item.Header>{this.props.title}</Item.Header>
-                    {
-                        this.props.candidates.map( c => {
-                            return (
-                                <Item.Extra key={c}>
-                                    <Icon color='green' name='check' />{c}
-                                    <Modal trigger={<Button>Vote</Button>} basic size='small'>
-                                        <Modal.Content>
-                                        <p>Your going to vote for {c}, are you sure?</p>
-                                        </Modal.Content>
-                                        <Modal.Actions>
-                                        <Button basic color='red' inverted>
-                                            <Icon name='remove' /> No
-                                        </Button>
-                                        <Button color='green' inverted onClick={this.voteFor(c)}>
-                                            <Icon name='checkmark' /> Yes
-                                        </Button>
-                                        </Modal.Actions>
-                                    </Modal>
-                                </Item.Extra>
-                            )
-                        })
-                    }
-                </Item.Content>
-            </Item>
+    render(){
+        return (
+            <Card
+                header={this.props.title}
+                onClick={this.selectedElection}
+            />
         )
     }
 }

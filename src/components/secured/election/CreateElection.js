@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import { Form, Dropdown } from "semantic-ui-react";
+import { Form, Dropdown, Message } from "semantic-ui-react";
 import { Wallet } from "../../../utils/web3"
 import BVotingContract  from "../../../utils/BVotingContract";
 
@@ -11,7 +11,11 @@ export class CreateElection extends Component{
         this.state = {
             candidates: [],
             title: "",
-            value: []
+            value: [],
+            errorMsg: "",
+            txHash: "",
+            error: false,
+            success: false
         }
 
         this.handleChange = this.handleChange.bind(this);
@@ -111,18 +115,53 @@ export class CreateElection extends Component{
             from: Wallet[0].address,
             gas: 4000000,
             gasPrice: 5000000000
+        }, (err, response) => {
+            if (err){
+                this.setState({
+                    error: true,
+                    errorMsg: err
+                });
+            } else {
+                this.setState({
+                    txHash: response
+                });
+            }
+            setTimeout(()=>{
+                this.setState({
+                    error: false,
+                    errorMsg: "",
+                    txHash: ""
+                });
+            }, 3000);
         })
-        .then(function(receipt){
+        .then((receipt) => {
             console.log("Mined");
             console.log(`\tResponse =>`);
             console.log(receipt);
             console.log("Smart contract address: " + receipt.contractAddress);
-            
+            this.setState({
+                success: true
+            });
+            setTimeout(()=>{
+                this.setState({
+                    success: false
+                });
+            }, 3000);
         })
         .catch(
             error => {
                 console.log("Error:");
                 console.error(error);
+                this.setState({
+                    error: true,
+                    errorMsg: error
+                });
+                setTimeout(()=>{
+                    this.setState({
+                        error: false,
+                        errorMsg: ""
+                    });
+                }, 3000);
             }
         );
 
@@ -216,9 +255,8 @@ export class CreateElection extends Component{
     handleDropdownChange = (e, { value }) => this.setState({ value })
 
     render(){
-        if (this.props.hidden) return null;
         return (
-            <Form onSubmit={this.createElection}>
+            <Form error={this.state.error} success={this.state.success} onSubmit={this.createElection}>
                 <Form.Group widths="equal"> 
                     <Form.Field>
                         <label>Candidates</label>
@@ -243,7 +281,21 @@ export class CreateElection extends Component{
                 <Form.Button 
                     primary
                     content="Create election"
-                    type="submit"/>
+                    type="submit"
+                    disabled={this.state.title=== "" || this.state.value.length <= 1}/>
+                <Message
+                    hidden={this.state.txHash === ""}
+                    info
+                    header='Transaction sent!'
+                    content={`Transaction hash: ${this.state.txHash}`} />
+                <Message 
+                    success
+                    header="Success!"
+                    content="Election created"/>
+                <Message
+                    error
+                    header='ERROR!'
+                    content={this.state.errorMsg} />
             </Form>
         );
     }

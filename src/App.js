@@ -1,12 +1,9 @@
 import React, { Component } from 'react';
 import { Navbar } from "./components/navbar/Navbar";
-import { UnlockUser } from "./components/secured/user/UnlockUser";
-import { CreateElection } from "./components/secured/election/CreateElection";
 import { ElectionList } from "./components/election/ElectionList";
-import Web3, { Wallet } from './utils/web3';
+import { Election } from "./components/election/Election";
+import Web3 from './utils/web3';
 import BVotingContract from "./utils/BVotingContract";
-//import instantiateContract from "./utils/instantiateContract";
-//import BVotingArtifact from "./contracts/BVoting.json";
 import './App.css';
 
 class App extends Component {
@@ -17,27 +14,30 @@ class App extends Component {
     this.state = {
       user: {
         isAdmin: false,
-        permission: 0
+        permission: 0,
+        wallet: undefined
       },
       users: [],
-      elections: []
+      elections: [],
+      wallets: [],
+      selectedElection: undefined
     };
 
     this.userChanged = this.userChanged.bind(this);
     this.userUnlocked = this.userUnlocked.bind(this);
     this.electionCreated = this.electionCreated.bind(this);
     this.voted = this.voted.bind(this);
+    this.showElection = this.showElection.bind(this);
   }
 
   userChanged(user){
+    console.log("Logged in new user");
     console.log(user);
     this.setState({
       user
     });
   }
   componentWillMount() {
-    // Get network provider and web3 instance.
-    // See utils/getWeb3 for more info.
     if (process.env.NODE_ENV === "development"){
       window.w3 = Web3;
     }
@@ -48,7 +48,7 @@ class App extends Component {
     }
 
     BVotingContract.getPastEvents("allEvents", {
-      fromBlock: 2216307
+      fromBlock: 0
     }, (err, response) => {
       if(err){
         console.error(err);
@@ -63,20 +63,27 @@ class App extends Component {
         });
       }
     });
-
-    let savedWallets = Wallet.load("12345678");
-    console.log(savedWallets);
   }
 
   userUnlocked(event){
+    console.log(event.user);
     let userPublicKey = event.user;
-    let users = this.state.users;
-    users.push({ 
-      key: userPublicKey, 
-      value: userPublicKey, 
-      text: userPublicKey });
-    this.setState({users});
-    
+    BVotingContract.methods.users(userPublicKey).call((err, user) => {
+      if(err){
+        console.error(err);
+      } else {
+        console.log("User", user);
+        let users = this.state.users;
+        users.push({ 
+          key: userPublicKey, 
+          value: userPublicKey, 
+          description: userPublicKey.substr(0, 10) + "..." + userPublicKey.substr(36),
+          text: user.name,
+          bio: user.surname,
+          image: user.electorCode });
+        this.setState({users});
+      }
+    });
   }
 
   electionCreated(event){
@@ -86,13 +93,28 @@ class App extends Component {
       address: event.electionContract,
       title: event.title
     };
+    console.log("New election:");
+    console.log(election);
     elections.push(election);
     this.setState({elections});
   }
 
   voted(event){
     console.log(event.from + " voted for " + event.votedFor + " at " + event.electionTo);
+  }
 
+  showElection(election){
+    console.log(this.state.elections);
+    
+    for (let i = 0; i < this.state.elections.length; i++) {
+      let temp = this.state.elections[i];
+      if (temp.address === election.address){
+        console.log(temp);
+        
+        this.setState({selectedElection: temp});
+      }
+      
+    }
   }
 
   render() {
@@ -101,16 +123,33 @@ class App extends Component {
       <div className="App">
         <Navbar
           wallets={[]}
+          elections={this.state.elections}
           user={this.state.user} 
-          onUserChange={this.userChanged}/>
-        <UnlockUser 
-          hidden={!this.state.user.isAdmin} />
-        <CreateElection 
           users={this.state.users}
-          hidden={!this.state.user.isAdmin}/>
-        <ElectionList
-          hidden={this.state.user.permission !== 1}
-          elections={this.state.elections}/>
+          userUnlocked={this.userUnlocked}
+          onUserChange={this.userChanged}
+          onElectionSelected={this.showElection}
+          />
+        <div className="main-content">
+          <div>
+            <h1>¡Bienvenido al sistema de voto en línea!</h1>
+            <p>
+              Basado en la tecnología <em>blockchain</em> ahora <br />
+              podrás realizar seguramente tus votos desde <br />
+              la comodidad de tu ordenador.
+            </p>
+          </div>
+        </div>
+        <div className="myContainer">
+          <ElectionList
+            elections={this.state.elections}
+            onSelectedElection={this.showElection}/>
+          <Election
+            hidden={this.state.selectedElection === undefined}
+            users={this.state.users}
+            election={this.state.selectedElection}
+          />
+        </div>
       </div>
     );
   }
